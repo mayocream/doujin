@@ -1,0 +1,9 @@
+{
+  "name": "crawler",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "puppeteer": "^24.5.0"
+  }
+}

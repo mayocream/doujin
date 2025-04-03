@@ -1,2 +1,1 @@
-# doujinshi
-Doujin.sh
+# Doujin.sh
