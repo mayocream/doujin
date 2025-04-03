@@ -72,7 +72,7 @@ const navigatePage = async (url: string) => {
     }
 
     // Save data to file
-    fs.writeFileSync(`../../data/${pageRef}.json`, JSON.stringify(data, null, 2))
+    fs.writeFileSync(`../../data/ehentai/${pageRef}.json`, JSON.stringify(data, null, 2))
 
     return nextPageUrl
 }
@@ -82,7 +82,7 @@ const run = async () => {
     query.forEach((value, key) => url.searchParams.append(key, value))
 
     // Read last page number from directory
-    const files = fs.readdirSync('../../data')
+    const files = fs.readdirSync('../../data/ehentai')
     const lastPage = files
         .map((file) => parseInt(file.split('.')[0]))
         .sort((a, b) => b - a)[0]
