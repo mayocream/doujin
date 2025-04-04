@@ -1,0 +1,14 @@
+[package]
+name = "doujin"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.40"
+dotenvy = "0.15.7"
+indicatif = "0.17.11"
+rayon = "1.10.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+sqlx = { version = "0.8.3", features = ["runtime-tokio", "postgres", "chrono"] }
+tokio = { version = "1.44.1", features = ["full"] }
