@@ -153,6 +153,126 @@ async fn process_authors(
     Ok(())
 }
 
+async fn process_circles(
+    mp: MultiProgress,
+    pool: sqlx::PgPool,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut entries = fs::read_dir("./data/doujinshi.org/Circle")?
+        .map(|res| res.map(|e| e.path()))
+        .collect::<Result<Vec<_>, std::io::Error>>()?;
+
+    entries.sort();
+
+    let pb = mp.add(ProgressBar::new(entries.len() as u64));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template(
+                "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+            )
+            .unwrap(),
+    );
+
+    let chunks = entries.chunks(100_000);
+
+    let mut tasks = vec![];
+    for chunk in chunks {
+        let pool = pool.clone();
+        let chunk = chunk.to_vec();
+        let pb = pb.clone();
+
+        tasks.push(tokio::spawn(async move {
+            for batch in chunk.chunks(1000) {
+                let mut query_builder = sqlx::QueryBuilder::new(
+                    "INSERT INTO circles (id, name, name_en, name_romaji) ",
+                );
+
+                query_builder.push_values(
+                    batch
+                        .iter()
+                        .filter(|e| e.to_string_lossy().ends_with(".json")),
+                    |mut b, entry| {
+                        let data =
+                            fs::read_to_string(entry.to_string_lossy().into_owned()).unwrap();
+                        let data: serde_json::Value = serde_json::from_str(&data).unwrap();
+                        let id = entry
+                            .file_stem()
+                            .unwrap()
+                            .to_str()
+                            .unwrap()
+                            .parse::<i64>()
+                            .unwrap();
+
+                        b.push_bind(id)
+                            .push_bind(data["NAME_JP"].as_str().map(|s| s.to_owned()))
+                            .push_bind(data["NAME_EN"].as_str().map(|s| s.to_owned()))
+                            .push_bind(data["NAME_R"].as_str().map(|s| s.to_owned()));
+                    },
+                );
+
+                query_builder.build().execute(&pool).await.ok();
+
+                // Process circle_authors relationships using batch insertion
+                let mut author_query_builder =
+                    sqlx::QueryBuilder::new("INSERT INTO circle_authors (circle_id, author_id) ");
+
+                // Create a vector to collect all circle_id -> author_id pairs
+                let mut circle_author_pairs = Vec::new();
+
+                for entry in batch
+                    .iter()
+                    .filter(|e| e.to_string_lossy().ends_with(".json"))
+                {
+                    let data = fs::read_to_string(entry.to_string_lossy().into_owned()).unwrap();
+                    let data: serde_json::Value = serde_json::from_str(&data).unwrap();
+
+                    let circle_id = entry
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .parse::<i64>()
+                        .unwrap();
+
+                    // Only process if we have author links
+                    if let Some(authors) = data["LINKS"]["ITEM"].as_array() {
+                        for author in authors {
+                            if let Some(author_id) = author["@ID"].as_str() {
+                                let author_id = author_id.trim_start_matches("A");
+                                if let Ok(author_id) = author_id.parse::<i64>() {
+                                    // Collect the circle_id -> author_id pair
+                                    circle_author_pairs.push((circle_id, author_id));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Only build and execute the query if we have pairs to insert
+                if !circle_author_pairs.is_empty() {
+                    author_query_builder.push_values(
+                        circle_author_pairs,
+                        |mut b, (circle_id, author_id)| {
+                            b.push_bind(circle_id).push_bind(author_id);
+                        },
+                    );
+
+                    author_query_builder.build().execute(&pool).await.ok();
+                }
+
+                pb.inc(batch.len() as u64);
+            }
+        }));
+    }
+
+    for task in tasks {
+        task.await.ok();
+    }
+
+    pb.finish_with_message("Processing complete");
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     dotenvy::dotenv()?;
@@ -167,6 +287,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let tasks = vec![
         tokio::spawn(process_books(mp.clone(), pool.clone())),
         tokio::spawn(process_authors(mp.clone(), pool.clone())),
+        tokio::spawn(process_circles(mp.clone(), pool.clone())),
     ];
 
     future::join_all(tasks).await;
