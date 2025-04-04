@@ -1,5 +1,6 @@
 use std::fs;
 
+use chrono::TimeZone;
 use indicatif::{ProgressBar, ProgressStyle};
 use sqlx::postgres::PgPoolOptions;
 
@@ -8,7 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv()?;
 
     let pool = PgPoolOptions::new()
-        .max_connections(20)
+        .max_connections(200)
         .connect(&std::env::var("DATABASE_URL")?)
         .await?;
 
@@ -20,21 +21,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Found {} entries", entries.len());
 
-    // Create a single progress bar for overall progress
     let pb = ProgressBar::new(entries.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
             .template(
                 "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
             )
-            .unwrap()
-            .progress_chars("#>-"),
+            .unwrap(),
     );
 
-    // Split the entries into chunks of 100000
     let chunks = entries.chunks(100_000);
 
-    // Spawn a task for each chunk
     let mut tasks = vec![];
     for chunk in chunks {
         let pool = pool.clone();
@@ -42,51 +39,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let pb = pb.clone();
 
         tasks.push(tokio::spawn(async move {
-            for entry in chunk {
-                // Skip files that are not JSON
-                let path = entry.to_string_lossy();
-                if !path.ends_with(".json") {
-                    pb.inc(1);
-                    continue;
-                }
+            for batch in chunk.chunks(1000) {
+                let mut query_builder = sqlx::QueryBuilder::new(
+                    "INSERT INTO books (id, type, name, name_en, name_romaji, description, release_date, isbn, pages, language, is_adult, is_anthology, is_copybook, is_magazine) "
+                );
 
-                let data = fs::read_to_string(path.into_owned()).unwrap();
-                let data: serde_json::Value = serde_json::from_str(&data).unwrap();
+                query_builder.push_values(batch.iter().filter(|e| e.to_string_lossy().ends_with(".json")), |mut b, entry| {
+                    let data = fs::read_to_string(entry.to_string_lossy().into_owned()).unwrap();
+                    let data: serde_json::Value = serde_json::from_str(&data).unwrap();
+                    let id = entry.file_stem().unwrap().to_str().unwrap().parse::<i64>().unwrap();
 
-                sqlx::query!(
-                   r#"
-                    INSERT INTO books (id, type, name, name_en, name_romaji, description, release_date, isbn, pages, language, is_adult, is_anthology, is_copybook, is_magazine)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                   "#,
-                    entry.file_stem().unwrap().to_str().unwrap().parse::<i64>().unwrap(),
-                    data["@TYPE"].as_str(),
-                    data["NAME_JP"].as_str(),
-                    data["NAME_EN"].as_str(),
-                    data["NAME_R"].as_str(),
-                    data["DATA_INFO"].as_str(),
-                    data["RELEASE_DATE"].as_str().map(|s| chrono::DateTime::parse_from_rfc3339(s).unwrap_or_default()),
-                    data["DATA_ISBN"].as_str(),
-                    data["DATA_PAGES"].as_str().map(|s| s.parse::<i64>().unwrap()),
-                    data["DATA_LANGUAGE"].as_str(),
-                    data["DATA_AGE"].as_str() == Some("1"),
-                    data["DATA_ANTHOLOGY"].as_str() == Some("1"),
-                    data["DATA_COPYSHI"].as_str() == Some("1"),
-                    data["DATA_MAGAZINE"].as_str() == Some("1"),
-                )
-                .execute(&pool)
-                .await
-                .ok();
+                    let release_date = data["DATE_RELEASED"].as_str().map(|s| {
+                        chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                            .unwrap_or_default()
+                            .and_hms_opt(0, 0, 0)
+                            .map(|dt| chrono::Utc.from_utc_datetime(&dt))
+                            .unwrap_or_default()
+                    });
 
-                pb.inc(1);
+                    b.push_bind(id)
+                     .push_bind(data["@TYPE"].as_str().map(|s| s.to_owned()))
+                     .push_bind(data["NAME_JP"].as_str().map(|s| s.to_owned()))
+                     .push_bind(data["NAME_EN"].as_str().map(|s| s.to_owned()))
+                     .push_bind(data["NAME_R"].as_str().map(|s| s.to_owned()))
+                     .push_bind(data["DATA_INFO"].as_str().map(|s| s.to_owned()))
+                     .push_bind(release_date)
+                     .push_bind(data["DATA_ISBN"].as_str().map(|s| s.to_owned()))
+                     .push_bind(data["DATA_PAGES"].as_str().map(|s| s.parse::<i64>().unwrap()))
+                     .push_bind(data["DATA_LANGUAGE"].as_str().map(|s| s.to_owned()))
+                     .push_bind(data["DATA_AGE"].as_str() == Some("1"))
+                     .push_bind(data["DATA_ANTHOLOGY"].as_str() == Some("1"))
+                     .push_bind(data["DATA_COPYSHI"].as_str() == Some("1"))
+                     .push_bind(data["DATA_MAGAZINE"].as_str() == Some("1"));
+                });
+
+                query_builder.build().execute(&pool).await.ok();
+                pb.inc(batch.len() as u64);
             }
         }));
     }
 
-    // Wait for all tasks to finish
     for task in tasks {
-        if let Err(e) = task.await {
-            eprintln!("Task failed: {:?}", e);
-        }
+        task.await.ok();
     }
 
     pb.finish_with_message("Processing complete");
