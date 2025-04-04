@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                      .push_bind(data["DATA_INFO"].as_str().map(|s| s.to_owned()))
                      .push_bind(release_date)
                      .push_bind(data["DATA_ISBN"].as_str().map(|s| s.to_owned()))
-                     .push_bind(data["DATA_PAGES"].as_str().map(|s| s.parse::<i64>().unwrap()))
+                     .push_bind(data["DATA_PAGES"].as_str().map(|s| s.parse::<i64>().unwrap_or_default()))
                      .push_bind(data["DATA_LANGUAGE"].as_str().map(|s| s.to_owned()))
                      .push_bind(data["DATA_AGE"].as_str() == Some("1"))
                      .push_bind(data["DATA_ANTHOLOGY"].as_str() == Some("1"))
