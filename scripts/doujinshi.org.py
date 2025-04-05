@@ -4,36 +4,37 @@
 
 import polars as pl
 import glob
-import os
 import orjson
 from tqdm import tqdm
 
 
 def read_json(file_path):
     """Read a JSON file and return a DataFrame."""
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         data = orjson.loads(f.read())
     df = pl.json_normalize(data, max_level=0, strict=False)
-    df = df.drop("url")
-    if "NAME_ALT" in df.columns:
-        df = df.drop("NAME_ALT")
-
-    if "LINKS" in df.columns:
-        df = df.drop("LINKS")
-
     return df
 
-def process_directory(directory_path, output_path):
+
+def process_authors():
     """Process all JSON files in a directory."""
     dfs = []
-    for file_path in tqdm(glob.glob(os.path.join(directory_path, "*.json"))):
+    for file_path in tqdm(glob.glob("data/doujinshi.org/Author/*.json")):
         df = read_json(file_path)
-
+        df = df.select(
+            [pl.col("@ID"), pl.col("NAME_JP"), pl.col("NAME_EN"), pl.col("NAME_R")]
+        )
         dfs.append(df)
 
     # Concatenate all DataFrames into one
     df = pl.concat(dfs, how="diagonal_relaxed")
-    df.write_csv(output_path)
+    df = df.rename(
+        {"@ID": "id", "NAME_JP": "name", "NAME_EN": "name_en", "NAME_R": "name_romaji"}
+    )
+    df = df.with_columns(pl.col("id").str.replace("A", ""))
+
+    df.write_csv("data/doujinshi.org/authors.csv")
+
 
 if __name__ == "__main__":
-    process_directory("data/doujinshi.org/Author", "data/doujinshi.org/Author.csv")
+    process_authors()
