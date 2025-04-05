@@ -7,6 +7,7 @@ import glob
 import orjson
 from tqdm import tqdm
 import concurrent.futures
+from pprint import pprint
 
 
 def read_json(file_path):
@@ -65,6 +66,11 @@ def process_characters(position=0):
         position=position,
     ):
         df = read_json(file_path)
+        tags = []
+        if "LINKS.ITEM" in df.columns:
+            tags = [x.get("@ID") for sublist in df["LINKS.ITEM"] for x in sublist]
+
+        df = df.with_columns(pl.lit(tags).alias("tags"))
         df = df.select(
             [
                 pl.col("@ID"),
@@ -73,12 +79,13 @@ def process_characters(position=0):
                 pl.col("NAME_R"),
                 pl.col("DATA_SEX"),
                 pl.col("DATA_AGE"),
+                pl.col("tags"),
             ]
         )
         dfs.append(df)
 
     # Concatenate all DataFrames into one
-    df = pl.concat(dfs, how="diagonal_relaxed")
+    df = pl.concat(dfs)
     df = df.rename(
         {
             "@ID": "id",
@@ -147,9 +154,9 @@ if __name__ == "__main__":
     with concurrent.futures.ProcessPoolExecutor() as executor:
         concurrent.futures.wait(
             [
-                executor.submit(process_authors, 0),
-                executor.submit(process_circles, 1),
+                # executor.submit(process_authors, 0),
+                # executor.submit(process_circles, 1),
                 executor.submit(process_characters, 2),
-                executor.submit(process_contents, 3),
+                # executor.submit(process_contents, 3),
             ]
         )
