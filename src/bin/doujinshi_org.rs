@@ -209,7 +209,7 @@ async fn main() {
         )),
         tokio::spawn(process_entity(
             Entity {
-                dir_name: "Book",
+                dir_name: "Publisher",
                 csv_name: "publishers",
                 headers: vec!["id", "name", "name_en", "name_romaji", "name_alt"],
             },
