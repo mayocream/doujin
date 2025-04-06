@@ -80,13 +80,16 @@ where
         .to_string_lossy()
         .to_string();
 
-    let mut writer = csv::Writer::from_path(output_file)?;
+    let mut writer = csv::WriterBuilder::new()
+        .delimiter(b'\t')
+        .from_path(&output_file)?;
     writer.write_record(&entity.headers)?;
 
-    let files = glob(&pattern)?.filter_map(Result::ok).collect::<Vec<_>>();
-    files
+    glob(&pattern)?
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>()
         .par_iter()
-        .progress_with(progress_bar(files.len() as u64))
+        .progress_with(progress_bar(glob(&pattern)?.count() as u64))
         .flat_map(|file| {
             let json: Value = serde_json::from_reader(std::io::BufReader::new(
                 std::fs::File::open(file).unwrap(),
@@ -98,6 +101,12 @@ where
         .into_iter()
         .filter(|record| !record.is_empty())
         .for_each(|record| {
+            // Replace empty strings with \N
+            let record: Vec<String> = record
+                .into_iter()
+                .map(|s| s.replace("\n", ""))
+                .map(|s| if s.is_empty() { "\\N".to_string() } else { s })
+                .collect();
             // Write to CSV at once to avoid using Mutex
             writer.write_record(&record).unwrap();
         });
@@ -169,7 +178,7 @@ async fn main() {
         tokio::spawn(process_entity(
             Entity {
                 dir_name: "Collections",
-                csv_name: "series",
+                csv_name: "magazines",
                 headers: vec!["id", "name", "name_en", "name_romaji", "name_alt"],
             },
             move |json| vec![extract_common_fields(json, "O")],
@@ -241,7 +250,7 @@ async fn main() {
                     "convention_id",
                     "circle_id",
                     "genre_id",
-                    "series_id",
+                    "magazine_id",
                     "type_id",
                     "imprint_id",
                     "publisher_id",
