@@ -169,6 +169,14 @@ async fn main() {
         )),
         tokio::spawn(process_entity(
             Entity {
+                dir_name: "Circle",
+                csv_name: "circles",
+                headers: vec!["id", "name", "name_en", "name_romaji", "name_alt"],
+            },
+            move |json| vec![extract_common_fields(json, "C")],
+        )),
+        tokio::spawn(process_entity(
+            Entity {
                 dir_name: "Genre",
                 csv_name: "genres",
                 headers: vec!["id", "name", "name_en", "name_romaji", "name_alt"],

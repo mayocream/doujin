@@ -65,7 +65,8 @@ def load_csv_to_database():
             csv_buffer,
             table_name,
             columns=df.columns.tolist(),
-            sep="\t"
+            sep="\t",
+            null="N"
         )
 
         conn.commit()
