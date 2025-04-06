@@ -17,10 +17,22 @@ async fn process_books() -> Result<(), Box<dyn std::error::Error + Send + Sync +
     let writer = Arc::new(Mutex::new(csv::Writer::from_path(
         "data/doujinshi.org/books.csv",
     )?));
-    writer
-        .lock()
-        .unwrap()
-        .write_record(&["id", "name", "name_en", "name_romaji", "name_alt"])?;
+    writer.lock().unwrap().write_record(&[
+        "id",
+        "type",
+        "name",
+        "name_en",
+        "name_romaji",
+        "release_date",
+        "isbn",
+        "pages",
+        "language",
+        "description",
+        "is_adult",
+        "is_copybook",
+        "is_anthology",
+        "is_magazine",
+    ])?;
 
     glob("data/doujinshi.org/Book/*.json")?
         .filter_map(|entry| entry.ok())
@@ -34,10 +46,34 @@ async fn process_books() -> Result<(), Box<dyn std::error::Error + Send + Sync +
                     let mut writer = writer.lock().unwrap();
                     let _ = writer.write_record(&[
                         data["@ID"].as_str().unwrap_or_default().replace("B", ""),
+                        data["@TYPE"].as_str().unwrap_or_default().to_string(),
                         data["NAME_JP"].as_str().unwrap_or_default().to_string(),
                         data["NAME_EN"].as_str().unwrap_or_default().to_string(),
                         data["NAME_R"].as_str().unwrap_or_default().to_string(),
-                        array_or_string(&data["NAME_ALT"]),
+                        data["DATE_RELEASED"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_string(),
+                        data["DATA_ISBN"].as_str().unwrap_or_default().to_string(),
+                        data["DATA_PAGES"].as_str().unwrap_or_default().to_string(),
+                        data["DATA_LANGUAGE"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_string(),
+                        data["DATA_INFO"].as_str().unwrap_or_default().to_string(),
+                        data["DATA_AGE"].as_str().unwrap_or_default().to_string(),
+                        data["DATA_COPYSHI"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_string(),
+                        data["DATA_ANTHOLOGY"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_string(),
+                        data["DATA_MAGAZINE"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_string(),
                     ]);
                 }
             }
