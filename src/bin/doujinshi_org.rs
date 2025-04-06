@@ -129,12 +129,36 @@ async fn process_character_tags() {
     .unwrap()
 }
 
+async fn process_tags() {
+    process(
+        &DATA_DIR.join("Content").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("tags.csv").to_string_lossy(),
+        vec!["id", "name", "name_en", "name_romaji", "name_alt"],
+        |json| {
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("K", ""),
+                json["NAME_JP"].as_str().unwrap_or_default().to_string(),
+                json["NAME_EN"].as_str().unwrap_or_default().to_string(),
+                json["NAME_R"].as_str().unwrap_or_default().to_string(),
+                json["NAME_ALT"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![json["NAME_ALT"].as_str().unwrap_or_default()])
+                    .join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
 #[tokio::main]
 async fn main() {
     future::join_all(vec![
         tokio::spawn(process_authors()),
         tokio::spawn(process_characters()),
         tokio::spawn(process_character_tags()),
+        tokio::spawn(process_tags()),
     ])
     .await;
 
