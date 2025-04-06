@@ -5,6 +5,14 @@ use glob::glob;
 use indicatif::ParallelProgressIterator;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
+fn array_or_string(value: &serde_json::Value) -> String {
+    value
+        .as_array()
+        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+        .unwrap_or_else(|| vec![value.as_str().unwrap_or_default()])
+        .join("|")
+}
+
 async fn process_books() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let writer = Arc::new(Mutex::new(csv::Writer::from_path(
         "data/doujinshi.org/books.csv",
@@ -29,11 +37,7 @@ async fn process_books() -> Result<(), Box<dyn std::error::Error + Send + Sync +
                         data["NAME_JP"].as_str().unwrap_or_default().to_string(),
                         data["NAME_EN"].as_str().unwrap_or_default().to_string(),
                         data["NAME_R"].as_str().unwrap_or_default().to_string(),
-                        data["NAME_ALT"]
-                            .as_array()
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
-                            .unwrap_or_else(|| vec![data["NAME_ALT"].as_str().unwrap_or_default()])
-                            .join("|"),
+                        array_or_string(&data["NAME_ALT"]),
                     ]);
                 }
             }
@@ -67,11 +71,7 @@ async fn process_contents() -> Result<(), Box<dyn std::error::Error + Send + Syn
                         data["NAME_JP"].as_str().unwrap_or_default().to_string(),
                         data["NAME_EN"].as_str().unwrap_or_default().to_string(),
                         data["NAME_R"].as_str().unwrap_or_default().to_string(),
-                        data["NAME_ALT"]
-                            .as_array()
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
-                            .unwrap_or_else(|| vec![data["NAME_ALT"].as_str().unwrap_or_default()])
-                            .join("|"),
+                        array_or_string(&data["NAME_ALT"]),
                     ]);
                 }
             }
@@ -105,12 +105,7 @@ async fn process_authors() -> Result<(), Box<dyn std::error::Error + Send + Sync
                         data["NAME_JP"].as_str().unwrap_or_default().to_string(),
                         data["NAME_EN"].as_str().unwrap_or_default().to_string(),
                         data["NAME_R"].as_str().unwrap_or_default().to_string(),
-                        // name_alt could be a string or an array
-                        data["NAME_ALT"]
-                            .as_array()
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
-                            .unwrap_or_else(|| vec![data["NAME_ALT"].as_str().unwrap_or_default()])
-                            .join("|"),
+                        array_or_string(&data["NAME_ALT"]),
                     ]);
                 }
             }
