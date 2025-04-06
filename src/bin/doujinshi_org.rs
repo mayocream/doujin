@@ -10,7 +10,7 @@ fn array_or_string(value: &serde_json::Value) -> String {
         .as_array()
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
         .unwrap_or_else(|| vec![value.as_str().unwrap_or_default()])
-        .join("|")
+        .join(",")
 }
 
 async fn process_books() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
