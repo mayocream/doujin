@@ -234,6 +234,29 @@ async fn process_series() {
     .unwrap()
 }
 
+async fn process_imprints() {
+    process(
+        &DATA_DIR.join("Imprint").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("imprints.csv").to_string_lossy(),
+        vec!["id", "name", "name_en", "name_romaji", "name_alt"],
+        |json| {
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("I", ""),
+                json["NAME_JP"].as_str().unwrap_or_default().to_string(),
+                json["NAME_EN"].as_str().unwrap_or_default().to_string(),
+                json["NAME_R"].as_str().unwrap_or_default().to_string(),
+                json["NAME_ALT"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![json["NAME_ALT"].as_str().unwrap_or_default()])
+                    .join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
 #[tokio::main]
 async fn main() {
     future::join_all(vec![
@@ -244,6 +267,7 @@ async fn main() {
         tokio::spawn(process_conventions()),
         tokio::spawn(process_genres()),
         tokio::spawn(process_series()),
+        tokio::spawn(process_imprints()),
     ])
     .await;
 
