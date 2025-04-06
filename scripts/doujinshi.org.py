@@ -3,8 +3,43 @@ import os
 import glob
 import pandas as pd
 from sqlalchemy import create_engine
+import csv
+from io import StringIO
+
 
 load_dotenv()
+
+
+# refer: https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-sql-method
+def psql_insert_copy(table, conn, keys, data_iter):
+    """
+    Execute SQL statement inserting data
+
+    Parameters
+    ----------
+    table : pandas.io.sql.SQLTable
+    conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+    keys : list of str
+        Column names
+    data_iter : Iterable that iterates the values to be inserted
+    """
+    # gets a DBAPI connection that can provide a cursor
+    dbapi_conn = conn.connection
+    with dbapi_conn.cursor() as cur:
+        s_buf = StringIO()
+        writer = csv.writer(s_buf)
+        writer.writerows(data_iter)
+        s_buf.seek(0)
+
+        columns = ", ".join(['"{}"'.format(k) for k in keys])
+        if table.schema:
+            table_name = "{}.{}".format(table.schema, table.name)
+        else:
+            table_name = table.name
+
+        sql = "COPY {} ({}) FROM STDIN WITH CSV".format(table_name, columns)
+        cur.copy_expert(sql=sql, file=s_buf)
+
 
 def load_csv_to_database():
     # Create connection with SQLAlchemy
@@ -22,26 +57,21 @@ def load_csv_to_database():
             quotechar='"',
             doublequote=True,
             quoting=1,  # csv.QUOTE_ALL
-            escapechar='\\',
-            na_values=['N', 'NA', 'NULL', ''],  # Better null handling
-            keep_default_na=True
+            na_values=["\\N", ""],  # Better null handling
+            keep_default_na=True,
         )
-
-        # Clean string columns (replace newlines/tabs with spaces)
-        for column in df.select_dtypes(include=['object']).columns:
-            df[column] = df[column].str.replace(r'[\n\t]', ' ', regex=True).str.strip()
 
         # Use to_sql with method='multi' for better performance and transaction safety
         df.to_sql(
             table_name,
             engine,
-            if_exists='replace',
+            method=psql_insert_copy,
+            if_exists="replace",
             index=False,
-            method='multi',  # Uses multiple INSERT statements
-            chunksize=1000    # Process in chunks to avoid memory issues
         )
 
         print(f"Table {table_name} created and populated successfully.")
+
 
 if __name__ == "__main__":
     load_csv_to_database()
