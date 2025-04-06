@@ -36,6 +36,7 @@ where
         })
         .collect::<Vec<_>>()
         .into_iter()
+        .filter(|record| !record.is_empty())
         .progress_with(progress_bar().with_message("Writing records"))
         .for_each(|record| {
             writer.write_record(&record).unwrap();
@@ -98,19 +99,29 @@ async fn process_character_tags() {
         &DATA_DIR.join("character_tags.csv").to_string_lossy(),
         vec!["character_id", "tag_id"],
         |json| {
+            let tags = json["LINKS"]["ITEM"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.get("@ID").unwrap().as_str())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match json["LINKS"]["ITEM"].as_str() {
+                    Some(tag) => vec![tag],
+                    None => vec![],
+                })
+                .into_iter()
+                .map(|tag| tag.replace("K", ""))
+                .collect::<Vec<_>>();
+
+            // Skip if no tags are found
+            if tags.is_empty() {
+                return vec![];
+            }
+
             vec![
                 json["@ID"].as_str().unwrap_or_default().replace("H", ""),
-                json["LINKS"]["ITEM"]
-                    .as_array()
-                    .map(|arr| {
-                        arr.iter()
-                            .filter_map(|v| v.get("@ID").unwrap().as_str())
-                            .collect::<Vec<_>>()
-                    })
-                    .unwrap_or_else(|| {
-                        vec![json["LINKS"]["ITEM"]["@ID"].as_str().unwrap_or_default()]
-                    })
-                    .join(","),
+                tags.join(","),
             ]
         },
     )
