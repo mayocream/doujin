@@ -257,6 +257,103 @@ async fn process_imprints() {
     .unwrap()
 }
 
+async fn process_parodies() {
+    process(
+        &DATA_DIR.join("Parody").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("parodies.csv").to_string_lossy(),
+        vec!["id", "name", "name_en", "name_romaji", "name_alt"],
+        |json| {
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("P", ""),
+                json["NAME_JP"].as_str().unwrap_or_default().to_string(),
+                json["NAME_EN"].as_str().unwrap_or_default().to_string(),
+                json["NAME_R"].as_str().unwrap_or_default().to_string(),
+                json["NAME_ALT"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![json["NAME_ALT"].as_str().unwrap_or_default()])
+                    .join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
+async fn process_parody_characters() {
+    process(
+        &DATA_DIR.join("Parody").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("parody_characters.csv").to_string_lossy(),
+        vec!["parody_id", "character_id"],
+        |json| {
+            let tags = json["LINKS"]["ITEM"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.get("@ID").unwrap().as_str())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match json["LINKS"]["ITEM"].as_str() {
+                    Some(tag) => vec![tag],
+                    None => vec![],
+                })
+                .into_iter()
+                .filter(|tag| tag.starts_with("H"))
+                .map(|tag| tag.replace("H", ""))
+                .collect::<Vec<_>>();
+
+            // Skip if no tags are found
+            if tags.is_empty() {
+                return vec![];
+            }
+
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("P", ""),
+                tags.join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
+async fn process_parody_tags() {
+    process(
+        &DATA_DIR.join("Parody").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("parody_tags.csv").to_string_lossy(),
+        vec!["parody_id", "tag_id"],
+        |json| {
+            let tags = json["LINKS"]["ITEM"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.get("@ID").unwrap().as_str())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match json["LINKS"]["ITEM"].as_str() {
+                    Some(tag) => vec![tag],
+                    None => vec![],
+                })
+                .into_iter()
+                .filter(|tag| tag.starts_with("K"))
+                .map(|tag| tag.replace("K", ""))
+                .collect::<Vec<_>>();
+
+            // Skip if no tags are found
+            if tags.is_empty() {
+                return vec![];
+            }
+
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("P", ""),
+                tags.join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
 #[tokio::main]
 async fn main() {
     future::join_all(vec![
@@ -268,6 +365,9 @@ async fn main() {
         tokio::spawn(process_genres()),
         tokio::spawn(process_series()),
         tokio::spawn(process_imprints()),
+        tokio::spawn(process_parodies()),
+        tokio::spawn(process_parody_characters()),
+        tokio::spawn(process_parody_tags()),
     ])
     .await;
 
