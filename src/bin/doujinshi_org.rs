@@ -152,6 +152,62 @@ async fn process_tags() {
     .unwrap()
 }
 
+async fn process_conventions() {
+    process(
+        &DATA_DIR.join("Convention").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("conventions.csv").to_string_lossy(),
+        vec![
+            "id",
+            "name",
+            "name_en",
+            "name_romaji",
+            "name_alt",
+            "start_date",
+            "end_date",
+        ],
+        |json| {
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("C", ""),
+                json["NAME_JP"].as_str().unwrap_or_default().to_string(),
+                json["NAME_EN"].as_str().unwrap_or_default().to_string(),
+                json["NAME_R"].as_str().unwrap_or_default().to_string(),
+                json["NAME_ALT"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![json["NAME_ALT"].as_str().unwrap_or_default()])
+                    .join(","),
+                json["DATE_START"].as_str().unwrap_or_default().to_string(),
+                json["DATE_END"].as_str().unwrap_or_default().to_string(),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
+async fn process_genres() {
+    process(
+        &DATA_DIR.join("Genre").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("genres.csv").to_string_lossy(),
+        vec!["id", "name", "name_en", "name_romaji", "name_alt"],
+        |json| {
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("G", ""),
+                json["NAME_JP"].as_str().unwrap_or_default().to_string(),
+                json["NAME_EN"].as_str().unwrap_or_default().to_string(),
+                json["NAME_R"].as_str().unwrap_or_default().to_string(),
+                json["NAME_ALT"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![json["NAME_ALT"].as_str().unwrap_or_default()])
+                    .join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
 #[tokio::main]
 async fn main() {
     future::join_all(vec![
@@ -159,6 +215,8 @@ async fn main() {
         tokio::spawn(process_characters()),
         tokio::spawn(process_character_tags()),
         tokio::spawn(process_tags()),
+        tokio::spawn(process_conventions()),
+        tokio::spawn(process_genres()),
     ])
     .await;
 
