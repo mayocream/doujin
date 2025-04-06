@@ -11,7 +11,7 @@ static MULTT_PROGRESS: LazyLock<MultiProgress> = LazyLock::new(MultiProgress::ne
 
 fn progress_bar() -> ProgressBar {
     MULTT_PROGRESS
-        .add(ProgressBar::new_spinner().with_style(indicatif::ProgressStyle::default_spinner()))
+        .add(ProgressBar::new_spinner().with_style(indicatif::ProgressStyle::default_bar()))
 }
 
 async fn process<F>(pattern: &str, output_file: &str, header: Vec<&str>, transform: F) -> Result<()>
@@ -400,6 +400,140 @@ async fn process_types() {
     .unwrap()
 }
 
+async fn process_books() {
+    process(
+        &DATA_DIR.join("Book").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("books.csv").to_string_lossy(),
+        vec!["id", "name", "name_en", "name_romaji", "name_alt"],
+        |json| {
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("B", ""),
+                json["NAME_JP"].as_str().unwrap_or_default().to_string(),
+                json["NAME_EN"].as_str().unwrap_or_default().to_string(),
+                json["NAME_R"].as_str().unwrap_or_default().to_string(),
+                json["NAME_ALT"]
+                    .as_array()
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+                    .unwrap_or_else(|| vec![json["NAME_ALT"].as_str().unwrap_or_default()])
+                    .join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
+async fn process_book_authors() {
+    process(
+        &DATA_DIR.join("Book").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("book_authors.csv").to_string_lossy(),
+        vec!["book_id", "author_id"],
+        |json| {
+            let authors = json["LINKS"]["ITEM"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.get("@ID").unwrap().as_str())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match json["LINKS"]["ITEM"].as_str() {
+                    Some(tag) => vec![tag],
+                    None => vec![],
+                })
+                .into_iter()
+                .filter(|tag| tag.starts_with("A"))
+                .map(|tag| tag.replace("A", ""))
+                .collect::<Vec<_>>();
+
+            // Skip if no tags are found
+            if authors.is_empty() {
+                return vec![];
+            }
+
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("B", ""),
+                authors.join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
+async fn process_book_characters() {
+    process(
+        &DATA_DIR.join("Book").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("book_characters.csv").to_string_lossy(),
+        vec!["book_id", "character_id"],
+        |json| {
+            let characters = json["LINKS"]["ITEM"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.get("@ID").unwrap().as_str())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match json["LINKS"]["ITEM"].as_str() {
+                    Some(tag) => vec![tag],
+                    None => vec![],
+                })
+                .into_iter()
+                .filter(|tag| tag.starts_with("H"))
+                .map(|tag| tag.replace("H", ""))
+                .collect::<Vec<_>>();
+
+            // Skip if no tags are found
+            if characters.is_empty() {
+                return vec![];
+            }
+
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("B", ""),
+                characters.join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
+async fn process_book_tags() {
+    process(
+        &DATA_DIR.join("Book").join("*.json").to_string_lossy(),
+        &DATA_DIR.join("book_tags.csv").to_string_lossy(),
+        vec!["book_id", "tag_id"],
+        |json| {
+            let tags = json["LINKS"]["ITEM"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.get("@ID").unwrap().as_str())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| match json["LINKS"]["ITEM"].as_str() {
+                    Some(tag) => vec![tag],
+                    None => vec![],
+                })
+                .into_iter()
+                .filter(|tag| tag.starts_with("K"))
+                .map(|tag| tag.replace("K", ""))
+                .collect::<Vec<_>>();
+
+            // Skip if no tags are found
+            if tags.is_empty() {
+                return vec![];
+            }
+
+            vec![
+                json["@ID"].as_str().unwrap_or_default().replace("B", ""),
+                tags.join(","),
+            ]
+        },
+    )
+    .await
+    .unwrap()
+}
+
 #[tokio::main]
 async fn main() {
     future::join_all(vec![
@@ -416,6 +550,10 @@ async fn main() {
         tokio::spawn(process_parody_tags()),
         tokio::spawn(process_publishers()),
         tokio::spawn(process_types()),
+        tokio::spawn(process_books()),
+        tokio::spawn(process_book_authors()),
+        tokio::spawn(process_book_characters()),
+        tokio::spawn(process_book_tags()),
     ])
     .await;
 
