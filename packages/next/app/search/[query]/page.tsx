@@ -11,7 +11,9 @@ export default async function SearchPage({
   params: Promise<{ query: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const { query } = await params
+  const { query: searchQuery } = await params
+  const query = decodeURIComponent(searchQuery)
+
   const { page } = await searchParams
   const p = Number(page) || 1
 
