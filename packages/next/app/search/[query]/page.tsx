@@ -19,9 +19,9 @@ export default async function SearchPage({
   const { count, data, error } = await supbase
     .from('books')
     .select(`*, authors (name)`, { count: 'exact' })
-    .textSearch('name', query as string)
+    .like('name', `%${query}%`)
     .order('id', { ascending: false })
-    .range((p - 1) * 100, p * 100 - 1)
+    .range((p - 1) * 30, p * 30 - 1)
 
   if (error) {
     console.error('Error fetching search results:', error)
