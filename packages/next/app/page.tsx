@@ -11,12 +11,12 @@ export default async function Index() {
       authors (name)
       `
     )
-    .order('id', { ascending: false })
+    .order('release_date', { ascending: false })
     .limit(10)
 
   return (
-    <main className='container mx-auto px-6 py-6'>
-      <div className='mb-8'>
+    <main className='container mx-auto p-6'>
+      <div className='mb-8 px-6'>
         <h2 className='text-3xl font-bold mb-2'>新着同人誌</h2>
         <div className='w-20 h-1 bg-indigo-500' />
       </div>

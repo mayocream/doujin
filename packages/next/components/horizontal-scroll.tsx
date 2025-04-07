@@ -26,7 +26,7 @@ export default function HorizontalScroll({ children }) {
 
       <div
         ref={scrollRef}
-        className='flex-1 overflow-x-auto flex gap-6 py-4 px-8 snap-x scrollbar-hide'
+        className='flex-1 overflow-x-auto flex gap-6 py-4 snap-x scrollbar-hide'
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {children}
