@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,39 +19,15 @@ jobs:
 
       - name: Pull environment variables
         working-directory: packages/next
-        run: |
-          bun vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          bun vercel env pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} .env
+        run: bun vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build Project
         working-directory: packages/next
-        run: bun run build
+        run: bun vercel build --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          path: packages/next/dist
-          name: dist
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: public
-
-      - name: Install Dependencies
-        run: bun install
-
-      - name: Deploy Project Artifacts to Vercel
+      - name: Deploy to Vercel
+        working-directory: packages/next
+        run: bun vercel deploy --prebuild --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        working-directory: packages/next
-        run: bun vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} ${{ github.workspace }}/public
