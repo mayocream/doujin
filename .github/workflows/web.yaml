@@ -1,0 +1,54 @@
+name: Web Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Pull environment variables
+        working-directory: packages/next
+        run: bun vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project
+        working-directory: packages/next
+        run: bun build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: packages/next/dist
+          name: dist
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: public
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Deploy Project Artifacts to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: bun vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} ./public
