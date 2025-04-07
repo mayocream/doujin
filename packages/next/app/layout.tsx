@@ -3,6 +3,7 @@ import { Noto_Sans_JP } from 'next/font/google'
 import { Theme } from '@radix-ui/themes'
 import './globals.css'
 import Header from '@/components/header'
+import Search from '@/components/search'
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -22,8 +23,11 @@ export default function RootLayout({
     <html lang='ja'>
       <body className={`${notoSansJP.className} antialiased`}>
         <Theme>
-          <Header />
-          {children}
+          <div className='flex flex-col min-h-screen gap-0 md:gap-10'>
+            <Header />
+            <Search />
+            {children}
+          </div>
         </Theme>
       </body>
     </html>

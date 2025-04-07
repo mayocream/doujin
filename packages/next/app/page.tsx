@@ -15,7 +15,7 @@ export default async function Index() {
     .limit(10)
 
   return (
-    <main className='container mx-auto px-6 py-12'>
+    <main className='container mx-auto px-6 py-6'>
       <div className='mb-8'>
         <h2 className='text-3xl font-bold mb-2'>新着同人誌</h2>
         <div className='w-20 h-1 bg-indigo-500' />
