@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Noto_Sans_JP } from 'next/font/google'
+import { Theme } from '@radix-ui/themes'
 import './globals.css'
+import Header from '@/components/header'
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -18,7 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='ja'>
-      <body className={`${notoSansJP.className} antialiased`}>{children}</body>
+      <body className={`${notoSansJP.className} antialiased`}>
+        <Theme>
+          <Header />
+          {children}
+        </Theme>
+      </body>
     </html>
   )
 }
