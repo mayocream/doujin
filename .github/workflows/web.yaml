@@ -21,13 +21,9 @@ jobs:
         working-directory: packages/next
         run: bun vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Project
-        working-directory: packages/next
-        run: bun vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Deploy to Vercel
         working-directory: packages/next
-        run: bun vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        run: bun vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
