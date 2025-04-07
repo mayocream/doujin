@@ -19,7 +19,9 @@ jobs:
 
       - name: Pull environment variables
         working-directory: packages/next
-        run: bun vercel env pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} .env
+        run: |
+          bun vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          bun vercel env pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} .env
 
       - name: Build Project
         working-directory: packages/next
