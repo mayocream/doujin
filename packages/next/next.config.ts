@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  distDir: 'dist',
 }
 
 export default nextConfig
