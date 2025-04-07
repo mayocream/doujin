@@ -85,7 +85,7 @@ export default function Pagination({ currentPage, totalPages }) {
       {getPageNumbers().map((page, index) => {
         if (page === 'ellipsis-left' || page === 'ellipsis-right') {
           return (
-            <div className='flex items-center'>
+            <div key={page} className='flex items-center'>
               <MoreHorizontal size={16} />
             </div>
           )
