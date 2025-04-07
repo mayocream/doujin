@@ -1,13 +1,26 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import { TextField, Select } from '@radix-ui/themes'
 import { Search as SearchIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 const Search = () => {
+  const router = useRouter()
+  const [query, setQuery] = useState('')
+
+  useEffect(() => {
+    if (query.length > 0) {
+      router.push(`/search/${query}`)
+    }
+  }, [query])
+
   return (
     <div className='w-full max-w-3xl mx-auto'>
       <div className='flex items-center bg-white rounded-lg shadow-md p-1 hover:shadow-lg transition-all duration-300'>
         <div className='flex-1'>
           <TextField.Root
+            onChange={(e) => setQuery(e.target.value)}
             variant='soft'
             className='w-full'
             placeholder='本、著者、ジャンルなどを検索...'

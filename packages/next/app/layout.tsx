@@ -11,7 +11,7 @@ const notoSansJP = Noto_Sans_JP({
 })
 
 export const metadata: Metadata = {
-  title: 'Doujin',
+  title: '同人',
   description: 'がんばろう同人！',
 }
 
