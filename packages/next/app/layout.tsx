@@ -4,6 +4,7 @@ import { Theme } from '@radix-ui/themes'
 import './globals.css'
 import Header from '@/components/header'
 import Search from '@/components/search'
+import Footer from '@/components/footer'
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ['latin'],
@@ -27,6 +28,7 @@ export default function RootLayout({
             <Header />
             <Search />
             {children}
+            <Footer />
           </div>
         </Theme>
       </body>
