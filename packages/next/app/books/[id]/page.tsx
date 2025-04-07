@@ -131,12 +131,12 @@ export default async function BookDetailPage({ params }) {
 
             {/* Book Details with Flex */}
             <div className='flex flex-wrap gap-3 mb-4'>
-              {book.release_data && (
+              {book.release_date && (
                 <div className='flex-grow basis-[calc(50%-0.75rem)]'>
                   <InfoItem
                     Icon={CalendarIcon}
                     label='発売日'
-                    value={book.release_data}
+                    value={book.release_date}
                   />
                 </div>
               )}
