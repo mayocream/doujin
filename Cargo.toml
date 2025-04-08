@@ -3,6 +3,9 @@ name = "doujin"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = [".", "translations/src-tauri"]
+
 [dependencies]
 anyhow = "1.0.97"
 chrono = "0.4.40"
