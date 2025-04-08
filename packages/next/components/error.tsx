@@ -1,14 +1,17 @@
-import { Callout } from '@radix-ui/themes'
-import { InfoIcon } from 'lucide-react'
+import { Alert } from '@mui/material'
+import InfoIcon from '@mui/icons-material/Info'
 
 const ErrorMessage = () => {
   return (
-    <Callout.Root variant='soft' className='w-full max-w-3xl mx-auto'>
-      <Callout.Icon>
-        <InfoIcon height={16} width={16} className='text-blue-500' />
-      </Callout.Icon>
-      <Callout.Text>エラーが発生しましたわ。</Callout.Text>
-    </Callout.Root>
+    <div className='w-full max-w-3xl mx-auto'>
+      <Alert
+        severity='info'
+        icon={<InfoIcon fontSize='inherit' color='primary' />}
+        sx={{ bgcolor: 'rgba(25, 118, 210, 0.08)' }}
+      >
+        エラーが発生しましたわ。
+      </Alert>
+    </div>
   )
 }
 

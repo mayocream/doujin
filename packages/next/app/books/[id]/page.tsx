@@ -1,16 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { thumbnail } from '@/lib/book'
 import ErrorMessage from '@/components/error'
+import { Paper, Chip, Divider } from '@mui/material'
 import {
-  BookIcon,
-  CalendarIcon,
-  TagIcon,
-  UsersIcon,
-  UserIcon,
-  GiftIcon,
-  BuildingIcon,
-} from 'lucide-react'
-import { Badge, Separator } from '@radix-ui/themes'
+  Book as BookIcon,
+  CalendarToday as CalendarIcon,
+  Tag as TagIcon,
+  Group as UsersIcon,
+  Person as UserIcon,
+  CardGiftcard as GiftIcon,
+  Business as BuildingIcon,
+} from '@mui/icons-material'
 
 export default async function BookDetailPage({ params }) {
   const { id } = await params
@@ -40,7 +40,7 @@ export default async function BookDetailPage({ params }) {
 
   const InfoItem = ({ Icon, label, value }) => (
     <div className='bg-gray-50 p-3 rounded flex items-center gap-2'>
-      <Icon size={16} className='text-gray-600' />
+      <Icon fontSize='small' className='text-gray-600' />
       <div>
         <p className='text-xs font-medium text-gray-500'>{label}</p>
         <p className='text-sm text-gray-700'>{value}</p>
@@ -52,14 +52,18 @@ export default async function BookDetailPage({ params }) {
     items?.length > 0 && (
       <div>
         <div className='flex items-center gap-2 mb-2'>
-          <Icon size={16} className='text-gray-600' />
+          <Icon fontSize='small' className='text-gray-600' />
           <p className='text-sm font-medium text-gray-700'>{title}</p>
         </div>
         <div className='flex flex-wrap gap-2'>
           {items.map((item) => (
-            <Badge key={item.name} color={color}>
-              {item.name}
-            </Badge>
+            <Chip
+              key={item.name}
+              label={item.name}
+              size='small'
+              color={color}
+              variant='outlined'
+            />
           ))}
         </div>
       </div>
@@ -72,28 +76,33 @@ export default async function BookDetailPage({ params }) {
         <div className='flex-shrink-0 md:w-1/3'>
           <div className='flex flex-col gap-4'>
             {/* Book Cover */}
-            <div className='overflow-hidden rounded-md shadow-md aspect-[2/3] bg-white'>
+            <Paper
+              elevation={3}
+              className='overflow-hidden rounded-md bg-white'
+            >
               <img
                 className='w-full h-full object-cover'
                 src={thumbnail(book.id)}
                 alt={book.name}
               />
-            </div>
+            </Paper>
 
             {/* Stats */}
             <div className='flex justify-between text-sm text-gray-600 px-2'>
-              {book.pages && (
-                <div className='flex items-center gap-1'>
-                  <BookIcon size={14} /> <span>{book.pages}ページ</span>
-                </div>
-              )}
+              <div className='flex items-center gap-1'>
+                <BookIcon fontSize='small' />
+                <span>
+                  {Number(book.pages) > 0 && Number(book.pages)} ページ
+                  {Number(book.pages) == 0 && '不詳'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Book Details Column */}
         <div className='flex-grow md:w-2/3'>
-          <div className='bg-white rounded-md shadow-sm p-5'>
+          <Paper className='p-5 rounded-md'>
             {/* Book Title */}
             <h1 className='text-2xl font-bold mb-2 text-gray-900'>
               {book.name}
@@ -102,12 +111,12 @@ export default async function BookDetailPage({ params }) {
             {/* Circle and Author */}
             <div className='flex flex-wrap gap-4 mb-4'>
               <div className='flex items-center gap-2'>
-                <div className='bg-indigo-50 p-2 rounded-full'>
-                  <UsersIcon size={16} className='text-indigo-600' />
+                <div className='bg-indigo-50 p-2 w-10 h-10 rounded-full items-center'>
+                  <UsersIcon fontSize='small' className='text-blue-500' />
                 </div>
                 <div>
                   <p className='text-xs text-gray-500 font-medium'>サークル</p>
-                  <p className='text-indigo-600 font-medium'>
+                  <p className='text-blue-500 font-medium'>
                     {book.circles?.map((c) => c.name).join(', ') ||
                       'サークル不明'}
                   </p>
@@ -115,19 +124,23 @@ export default async function BookDetailPage({ params }) {
               </div>
 
               <div className='flex items-center gap-2'>
-                <div className='bg-indigo-50 p-2 rounded-full'>
-                  <UserIcon size={16} className='text-indigo-600' />
+                <div className='bg-indigo-50 p-2 w-10 h-10 rounded-full items-center'>
+                  <UserIcon fontSize='small' className='text-blue-500' />
                 </div>
                 <div>
                   <p className='text-xs text-gray-500 font-medium'>著者</p>
-                  <p className='text-indigo-600 font-medium'>
+                  <p className='text-blue-500 font-medium'>
                     {book.authors?.map((a) => a.name).join(', ') || '著者不明'}
                   </p>
                 </div>
               </div>
             </div>
 
-            <Separator className='my-4' />
+            <Divider
+              sx={{
+                margin: '1rem 0',
+              }}
+            />
 
             {/* Book Details with Flex */}
             <div className='flex flex-wrap gap-3 mb-4'>
@@ -156,7 +169,11 @@ export default async function BookDetailPage({ params }) {
               </div>
             </div>
 
-            <Separator className='my-4' />
+            <Divider
+              sx={{
+                margin: '1rem 0',
+              }}
+            />
 
             {/* Categories */}
             <div className='flex flex-col gap-4'>
@@ -164,21 +181,21 @@ export default async function BookDetailPage({ params }) {
                 Icon={TagIcon}
                 title='タグ'
                 items={book.tags}
-                color='blue'
+                color='primary'
               />
 
               <CategorySection
                 Icon={BookIcon}
                 title='ジャンル'
                 items={book.genres}
-                color='purple'
+                color='secondary'
               />
 
               <CategorySection
                 Icon={UserIcon}
                 title='キャラクター'
                 items={book.characters}
-                color='pink'
+                color='error'
               />
 
               <div className='flex flex-col md:flex-row flex-wrap gap-4'>
@@ -187,7 +204,7 @@ export default async function BookDetailPage({ params }) {
                     Icon={GiftIcon}
                     title='パロディ元'
                     items={book.parodies}
-                    color='amber'
+                    color='warning'
                   />
                 </div>
 
@@ -196,7 +213,7 @@ export default async function BookDetailPage({ params }) {
                     Icon={BuildingIcon}
                     title='出版社'
                     items={book.publishers}
-                    color='teal'
+                    color='info'
                   />
                 </div>
 
@@ -205,12 +222,12 @@ export default async function BookDetailPage({ params }) {
                     Icon={BuildingIcon}
                     title='インプリント'
                     items={book.imprints}
-                    color='green'
+                    color='success'
                   />
                 </div>
               </div>
             </div>
-          </div>
+          </Paper>
         </div>
       </div>
     </div>

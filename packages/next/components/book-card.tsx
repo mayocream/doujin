@@ -1,26 +1,35 @@
-import { Card } from '@radix-ui/themes'
+import { Card, CardContent, CardMedia, Typography } from '@mui/material'
 import { thumbnail } from '@/lib/book'
 import Link from 'next/link'
 
 export default function BookCard({ book }) {
   return (
     <Link href={`/books/${book.id}`}>
-      <Card className='w-56 flex-shrink-0 flex-grow-0 p-4 snap-start hover:shadow-lg transition-shadow'>
-        <div className='flex flex-col h-full'>
-          <div className='flex justify-center'>
-            <img
-              className='h-64 mb-3 rounded object-cover'
-              src={thumbnail(book.id)}
-              alt={book.name}
-            />
-          </div>
-          <h3 className='text-lg font-bold mb-2 break-words overflow-hidden line-clamp-2'>
+      <Card sx={{ maxWidth: 300, minWidth: 200 }}>
+        <CardMedia
+          component='img'
+          height='200'
+          image={thumbnail(book.id)}
+          alt={book.name}
+        />
+        <CardContent>
+          <Typography
+            gutterBottom
+            variant='subtitle1'
+            component='div'
+            sx={{
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
             {book.name}
-          </h3>
-          <p className='text-sm text-gray-600 mt-auto truncate'>
+          </Typography>
+          <Typography variant='body2' color='text.secondary' noWrap>
             {book.authors?.map((a) => a.name).join(', ')}
-          </p>
-        </div>
+          </Typography>
+        </CardContent>
       </Card>
     </Link>
   )
