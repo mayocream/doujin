@@ -1,6 +1,8 @@
 {
   "name": "doujin",
   "workspaces": [
-    "packages/*"
+    "web",
+    "crawler",
+    "translations"
   ]
 }
